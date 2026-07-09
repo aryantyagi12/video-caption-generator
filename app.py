@@ -1,7 +1,9 @@
 import os
-import streamlit as st 
+import shutil
 import subprocess
 from datetime import timedelta
+
+import streamlit as st
 import whisper
 import srt
 from moviepy import VideoFileClip
@@ -48,18 +50,22 @@ def convert_to_srt(transcription_result):
         st.error(f"error  generating  srt: {e}")
         return ""
 
-def burn_subtitles(video_path,srt_path,output_path,ffmpeg_path):
-    video_full=os.path.abspath(video_path)
-    output_full=os.path.abspath(output_path)
-
-    command=f'"{ffmpeg_path}" -i "{video_full}" -vf "subtitles={srt_path}" "{output_full}"'
-    
+def burn_subtitles(video_path, srt_path, output_path, ffmpeg_path=None):
+    video_full = os.path.abspath(video_path)
+    output_full = os.path.abspath(output_path)
+    ffmpeg_bin = ffmpeg_path or shutil.which("ffmpeg") or "ffmpeg"
 
     try:
-        subprocess.run(command,shell=True,check=True)
+        subprocess.run(
+            [ffmpeg_bin, "-i", video_full, "-vf", f"subtitles={srt_path}", output_full],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
         return True
     except subprocess.CalledProcessError as e:
-        st.error(f"error burning subtitles: {e}")
+        st.error(f"error burning subtitles: {e.stderr}")
         return False
 def main():
     st.title("Youtube Auto Captions Generator")
@@ -93,9 +99,8 @@ def main():
                 f.write(srt_content)
             st.success("SRT file generated")
 
-            ffmpeg_path=r"C:\Users\Aryan\Downloads\ffmpeg-8.0.1-essentials_build\ffmpeg-8.0.1-essentials_build\bin\ffmpeg.exe"
             st.write("burning captions")
-            if burn_subtitles(video_path,srt_path,"video/output_video.mp4",ffmpeg_path):
+            if burn_subtitles(video_path, srt_path, "video/output_video.mp4"):
                 st.success("captions burned")
                 st.video("video/output_video.mp4")
                 

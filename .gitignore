@@ -1,3 +1,5 @@
 venv/
 Dockerfile
 .dockerignore
+_pycache__/
+*.pyc
